@@ -110,38 +110,4 @@ impl SpringBoardServicesClient {
         let res = self.idevice.read_plist_value().await?;
         Ok(res)
     }
-
-    /// Sets the icon state on the device
-    ///
-    /// This allows you to programmatically arrange the home screen layout,
-    /// including app positions and folder structures.
-    ///
-    /// # Arguments
-    /// * `icon_state` - A plist Value containing the desired icon state structure
-    ///
-    /// # Returns
-    /// Returns `Ok(())` if the icon state was successfully applied
-    ///
-    /// # Errors
-    /// Returns `IdeviceError` if:
-    /// - Communication fails
-    /// - The icon state format is invalid
-    /// - The device rejects the icon state
-    ///
-    /// # Example
-    /// ```rust
-    /// let icon_state = client.get_icon_state(None).await?;
-    /// // Modify icon_state as needed
-    /// client.set_icon_state(icon_state).await?;
-    /// ```
-    pub async fn set_icon_state(&mut self, icon_state: plist::Value) -> Result<(), IdeviceError> {
-        let req = crate::plist!({
-            "command": "setIconState",
-            "iconState": icon_state,
-        });
-
-        self.idevice.send_plist(req).await?;
-        let _res = self.idevice.read_plist().await?;
-        Ok(())
-    }
 }
