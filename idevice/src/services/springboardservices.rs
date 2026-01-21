@@ -3,7 +3,7 @@
 //! Provides functionality for interacting with the SpringBoard services on iOS devices,
 //! which manages home screen and app icon related operations.
 
-use crate::{Idevice, IdeviceError, IdeviceService, obf};
+use crate::{obf, Idevice, IdeviceError, IdeviceService};
 
 /// Client for interacting with the iOS SpringBoard services
 ///
@@ -69,5 +69,79 @@ impl SpringBoardServicesClient {
             Some(plist::Value::Data(res)) => Ok(res),
             _ => Err(IdeviceError::UnexpectedResponse),
         }
+    }
+
+    /// Retrieves the current icon state from the device
+    ///
+    /// The icon state contains the layout and organization of all apps on the home screen,
+    /// including folder structures and icon positions.
+    ///
+    /// # Arguments
+    /// * `format_version` - Optional format version string for the icon state format
+    ///
+    /// # Returns
+    /// A plist Value containing the complete icon state structure
+    ///
+    /// # Errors
+    /// Returns `IdeviceError` if:
+    /// - Communication fails
+    /// - The response is malformed
+    ///
+    /// # Example
+    /// ```rust
+    /// let icon_state = client.get_icon_state(None).await?;
+    /// println!("Icon state: {:?}", icon_state);
+    /// ```
+    pub async fn get_icon_state(
+        &mut self,
+        format_version: Option<String>,
+    ) -> Result<plist::Value, IdeviceError> {
+        let mut req = crate::plist!({
+            "command": "getIconState",
+        });
+
+        if let Some(version) = format_version {
+            if let Some(dict) = req.as_dictionary_mut() {
+                dict.insert("formatVersion".to_string(), plist::Value::String(version));
+            }
+        }
+
+        self.idevice.send_plist(req).await?;
+        let res = self.idevice.read_plist_value().await?;
+        Ok(res)
+    }
+
+    /// Sets the icon state on the device
+    ///
+    /// This allows you to programmatically arrange the home screen layout,
+    /// including app positions and folder structures.
+    ///
+    /// # Arguments
+    /// * `icon_state` - A plist Value containing the desired icon state structure
+    ///
+    /// # Returns
+    /// Returns `Ok(())` if the icon state was successfully applied
+    ///
+    /// # Errors
+    /// Returns `IdeviceError` if:
+    /// - Communication fails
+    /// - The icon state format is invalid
+    /// - The device rejects the icon state
+    ///
+    /// # Example
+    /// ```rust
+    /// let icon_state = client.get_icon_state(None).await?;
+    /// // Modify icon_state as needed
+    /// client.set_icon_state(icon_state).await?;
+    /// ```
+    pub async fn set_icon_state(&mut self, icon_state: plist::Value) -> Result<(), IdeviceError> {
+        let req = crate::plist!({
+            "command": "setIconState",
+            "iconState": icon_state,
+        });
+
+        self.idevice.send_plist(req).await?;
+        let _res = self.idevice.read_plist().await?;
+        Ok(())
     }
 }
