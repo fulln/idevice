@@ -141,7 +141,11 @@ impl SpringBoardServicesClient {
         });
 
         self.idevice.send_plist(req).await?;
-        let _res = self.idevice.read_plist().await?;
-        Ok(())
+
+        match self.idevice.read_plist().await {
+            Ok(_) => Ok(()),
+            Err(IdeviceError::Socket(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 }
